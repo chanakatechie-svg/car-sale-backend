@@ -275,13 +275,15 @@ export class VehiclesService {
     return { ...dto, image: dto.images[0] ?? '' };
   }
 
-  /** Make / fuel / transmission / body type must exist in the admin Settings lists. */
+  /** Every dropdown attribute must exist in its admin Settings list (empty optional ones are skipped). */
   private async validateOptions(dto: Partial<CreateVehicleDto>) {
     const checks: [OptionList, string | undefined, string][] = [
       [OptionList.Makes, dto.make, 'make'],
       [OptionList.FuelTypes, dto.fuelType, 'fuelType'],
       [OptionList.Transmissions, dto.transmission, 'transmission'],
       [OptionList.BodyTypes, dto.bodyType || undefined, 'bodyType'],
+      [OptionList.Conditions, dto.condition || undefined, 'condition'],
+      [OptionList.Drivetrains, dto.drivetrain || undefined, 'drivetrain'],
     ];
     const errors: string[] = [];
     for (const [list, value, field] of checks) {

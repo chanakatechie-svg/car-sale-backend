@@ -7,6 +7,8 @@ export enum OptionList {
   BodyTypes = 'bodyTypes',
   FuelTypes = 'fuelTypes',
   Transmissions = 'transmissions',
+  Conditions = 'conditions',
+  Drivetrains = 'drivetrains',
 }
 
 /** One entry in an admin-managed dropdown list (Settings page). */

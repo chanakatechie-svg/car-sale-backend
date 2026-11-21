@@ -1,20 +1,4 @@
-import type { SettingsLists } from '../../../modules/settings/settings.service';
+import { DEFAULT_SETTINGS } from '../../../modules/settings/settings.defaults';
 
-/** Same defaults as the frontend settings slice (redux/admin/settings/settingsSlice.ts). */
-export const seedSettings: SettingsLists = {
-  makes: [
-    'Audi',
-    'BMW',
-    'Mercedes-Benz',
-    'Range Rover',
-    'Volkswagen',
-    'Volvo',
-    'Porsche',
-    'Jaguar',
-    'Land Rover',
-    'Tesla',
-  ],
-  bodyTypes: ['Saloon', 'SUV', 'Hatchback', 'Estate', 'Coupe', 'Convertible'],
-  fuelTypes: ['Petrol', 'Diesel', 'Hybrid', 'Plug-in Hybrid', 'Electric'],
-  transmissions: ['Automatic', 'Manual'],
-};
+/** Seed uses the same defaults the app applies to empty lists on startup. */
+export const seedSettings = DEFAULT_SETTINGS;

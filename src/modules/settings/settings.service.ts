@@ -2,20 +2,55 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnApplicationBootstrap,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { OptionList, SettingOption } from './entities/setting-option.entity';
+import { DEFAULT_SETTINGS, OPTION_LIST_COLUMNS, type SettingsLists } from './settings.defaults';
 
-export type SettingsLists = Record<OptionList, string[]>;
+export type { SettingsLists } from './settings.defaults';
 
 @Injectable()
-export class SettingsService {
+export class SettingsService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(SettingsService.name);
+
   constructor(
     @InjectRepository(SettingOption) private readonly options: Repository<SettingOption>,
     private readonly dataSource: DataSource,
   ) {}
+
+  /**
+   * Any list that is still empty (first run, or a list added in a later release)
+   * gets the defaults plus every value existing vehicles already use, so editing
+   * current stock never fails the "must be in Settings" check.
+   */
+  async onApplicationBootstrap() {
+    for (const list of Object.values(OptionList)) {
+      if ((await this.options.count({ where: { list } })) > 0) continue;
+      const inUse = await this.valuesInUse(list);
+      const values = [...new Set([...DEFAULT_SETTINGS[list], ...inUse])];
+      await this.options.save(
+        values.map((value, sortOrder) => this.options.create({ list, value, sortOrder })),
+      );
+      this.logger.log(`Initialised "${list}" with ${values.length} options`);
+    }
+  }
+
+  /** Distinct non-empty values of this list's column on the vehicles table. */
+  private async valuesInUse(list: OptionList): Promise<string[]> {
+    const column = OPTION_LIST_COLUMNS[list];
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select(`DISTINCT v.${column}`, 'value')
+      .from('vehicles', 'v')
+      .where(`v.${column} IS NOT NULL`)
+      .andWhere(`v.${column} <> ''`)
+      .getRawMany<{ value: string }>();
+    return rows.map((r) => r.value.trim()).filter((v) => v && v.length <= 60);
+  }
 
   /** Shape matches the frontend `SettingsState`: `{ makes: [...], bodyTypes: [...], ... }`. */
   async getAll(): Promise<SettingsLists> {
