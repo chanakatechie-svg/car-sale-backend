@@ -2,19 +2,21 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Vehicle } from '../../vehicles/entities/vehicle.entity';
 
-/** Matches the enquiry types on the Contact page. */
+/** Values match the frontend `EnquiryType` (redux/admin/enquiries/enquiriesTypes.ts). */
 export enum EnquiryType {
-  TestDrive = 'test_drive',
+  TestDrive = 'test-drive',
   Vehicle = 'vehicle',
   Finance = 'finance',
-  PartExchange = 'part_exchange',
+  PartExchange = 'part-exchange',
   General = 'general',
 }
 
+/** Values match the frontend `EnquiryStatus`. */
 export enum EnquiryStatus {
   New = 'new',
-  Contacted = 'contacted',
-  Closed = 'closed',
+  InProgress = 'in-progress',
+  Resolved = 'resolved',
+  Archived = 'archived',
 }
 
 /**

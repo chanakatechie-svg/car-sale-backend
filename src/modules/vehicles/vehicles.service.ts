@@ -5,6 +5,7 @@ import { skipOf } from '../../common/dto/pagination-query.dto';
 import { paginate } from '../../common/interfaces/paginated-result.interface';
 import { OptionList } from '../settings/entities/setting-option.entity';
 import { SettingsService } from '../settings/settings.service';
+import { StorageService } from '../uploads/storage.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { QueryVehiclesDto } from './dto/query-vehicles.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
@@ -15,6 +16,7 @@ export class VehiclesService {
   constructor(
     @InjectRepository(Vehicle) private readonly vehicles: Repository<Vehicle>,
     private readonly settings: SettingsService,
+    private readonly storage: StorageService,
   ) {}
 
   async findAll(query: QueryVehiclesDto) {
@@ -69,13 +71,21 @@ export class VehiclesService {
   async update(id: string, dto: UpdateVehicleDto) {
     const vehicle = await this.findOne(id);
     await this.validateOptions(dto);
+    const before = this.fileUrls(vehicle);
     Object.assign(vehicle, this.normalise(dto));
-    return this.vehicles.save(vehicle);
+    const saved = await this.vehicles.save(vehicle);
+
+    // Delete uploaded files the vehicle no longer uses (removed images, replaced brochure…).
+    const after = new Set(this.fileUrls(saved));
+    await this.storage.deleteByUrls(before.filter((u) => !after.has(u)));
+    return saved;
   }
 
   async remove(id: string) {
     const vehicle = await this.findOne(id);
+    const files = this.fileUrls(vehicle);
     await this.vehicles.remove(vehicle);
+    await this.storage.deleteByUrls(files);
   }
 
   async setFeatured(id: string, featured: boolean) {
@@ -175,6 +185,11 @@ export class VehiclesService {
       default:
         qb.orderBy('v.year', 'DESC').addOrderBy('v.createdAt', 'DESC');
     }
+  }
+
+  /** Every file URL a vehicle points at. Only ones in our own storage are ever deleted. */
+  private fileUrls(v: Vehicle): string[] {
+    return [v.image, ...(v.images ?? []), v.brochureUrl ?? ''].filter(Boolean);
   }
 
   /** Keeps `image` in sync with `images[0]`, as the frontend expects. */

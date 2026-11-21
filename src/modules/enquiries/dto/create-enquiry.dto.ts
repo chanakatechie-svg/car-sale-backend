@@ -60,12 +60,15 @@ export class CreateEnquiryDto {
   @IsOptional()
   vehicleId?: string;
 
-  @ValidateIf((o: CreateEnquiryDto) => o.type === EnquiryType.TestDrive)
+  /** YYYY-MM-DD. Optional — the Contact page lets customers book without a date. */
   @IsDateString({ strict: true })
+  @IsOptional()
   preferredDate?: string;
 
-  @ValidateIf((o: CreateEnquiryDto) => o.type === EnquiryType.TestDrive)
-  @Matches(/^\d{2}:\d{2}$/, { message: 'preferredTime must be HH:mm' })
+  /** Time slot label from the booking form, e.g. "10:00 AM". */
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
   preferredTime?: string;
 
   // ── Part exchange ─────────────────────────────────

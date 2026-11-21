@@ -4,9 +4,9 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
-import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LOCAL_UPLOAD_ROOT } from './modules/uploads/storage/local.driver';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -24,8 +24,10 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  // Uploaded vehicle images are served at /uploads/<file>
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
+  // With STORAGE_DRIVER=local, uploaded images are served from here at /uploads/<file>.
+  if (config.get('storage.driver') !== 's3') {
+    app.useStaticAssets(LOCAL_UPLOAD_ROOT, { prefix: '/uploads/' });
+  }
 
   if (config.get('nodeEnv') !== 'production') {
     const swagger = new DocumentBuilder()

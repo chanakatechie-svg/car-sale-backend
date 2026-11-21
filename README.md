@@ -52,7 +52,7 @@ src/
     ├── settings/              # admin-managed dropdown lists
     ├── enquiries/             # test drive / part-ex / finance / general leads
     ├── dashboard/             # admin stats
-    ├── uploads/               # vehicle image uploads
+    ├── uploads/               # vehicle image uploads → local disk or S3-compatible storage
     └── health/
 ```
 
@@ -61,6 +61,23 @@ src/
 - Each feature module has a **public controller** (`vehicles.controller.ts` → `/vehicles`) and an **admin controller** (`admin-vehicles.controller.ts` → `/admin/vehicles`). The admin controllers map one-to-one onto the frontend's `app/admin/*` pages and `components/admin/*` modals.
 - Every route needs a JWT by default. Public routes opt out with `@Public()`, and admin routes restrict access with `@Roles(...)`.
 - Response shapes match the frontend types in `car-sale/src/redux/**/*Types.ts`, so the Redux slices can switch from mock data to `fetch` with little change.
+
+---
+
+## Image storage
+
+`POST /admin/uploads/images` saves vehicle images through a storage driver picked by `STORAGE_DRIVER` in `.env`:
+
+| Driver | Where files go | Good for |
+| --- | --- | --- |
+| `local` (default) | `./uploads/vehicles/` on this server, served at `PUBLIC_URL/uploads/...` | development, a single server with a persistent disk |
+| `s3` | an S3-compatible bucket | production, multiple servers, containers |
+
+`s3` works with AWS S3, Cloudflare R2, DigitalOcean Spaces, Backblaze B2, Wasabi and MinIO. Set `S3_BUCKET`, `S3_REGION`, the access keys and, for anything that isn't AWS, `S3_ENDPOINT`. Set `S3_PUBLIC_URL` to the CDN or public domain that serves the bucket. The bucket must allow public reads, through a bucket policy, a public domain (R2), or `S3_ACL=public-read`. `.env.example` has examples for each service.
+
+Every upload is checked by its real file content (JPEG, PNG, WebP or AVIF, up to 8 MB, up to 20 files) and stored as `vehicles/<uuid>.<ext>`. When a vehicle is deleted, or an image or brochure is removed from it, the file is deleted from storage too. URLs that don't point at our storage (such as the seed images) are never touched.
+
+Changing driver doesn't move existing files: URLs already saved on vehicles keep pointing where they were uploaded.
 
 ---
 
