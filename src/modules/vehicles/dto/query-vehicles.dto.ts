@@ -60,6 +60,15 @@ export class QueryVehiclesDto extends PaginationQueryDto {
   @IsOptional()
   sortBy: VehicleSort = 'newest';
 
+  /**
+   * Also return the filter-sidebar facets (same as GET /vehicles/facets) in the
+   * same response, so a filter change costs one round trip instead of two.
+   */
+  @Transform(toBool)
+  @IsBoolean()
+  @IsOptional()
+  includeFacets?: boolean;
+
   /** Frontend shows 9 per page on /vehicles. */
   limit: number = 9;
 }

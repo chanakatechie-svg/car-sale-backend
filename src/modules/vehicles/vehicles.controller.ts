@@ -21,7 +21,18 @@ export class VehiclesController {
 
   @Get()
   findAll(@Query() query: QueryVehiclesDto) {
-    return this.vehiclesService.findAll(query);
+    return query.includeFacets
+      ? this.vehiclesService.findAllWithFacets(query)
+      : this.vehiclesService.findAll(query);
+  }
+
+  /**
+   * Filter sidebar data: price/year bounds and per-option counts.
+   * Accepts the same filters as GET /vehicles (page/limit/sortBy are ignored).
+   */
+  @Get('facets')
+  facets(@Query() query: QueryVehiclesDto) {
+    return this.vehiclesService.facets(query);
   }
 
   @Get('featured')
