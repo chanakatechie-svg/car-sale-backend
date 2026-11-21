@@ -14,6 +14,9 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   app.setGlobalPrefix('api/v1');
+  // Behind a reverse proxy (cPanel/Passenger, Nginx, a load balancer), use the visitor's real IP
+  // from X-Forwarded-For. Otherwise every visitor shares one rate-limit bucket.
+  if (config.get<boolean>('trustProxy')) app.set('trust proxy', 1);
   // Allow the Next.js site (different origin) to load uploaded images.
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.enableCors({ origin: config.get<string[]>('corsOrigins'), credentials: true });
