@@ -1,6 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
+import { randomUUID } from 'crypto';
+import { Brackets, IsNull, Like, Not, Repository, SelectQueryBuilder } from 'typeorm';
+import { slugIdCode, vehicleSlug } from './vehicle-slug';
 import { skipOf } from '../../common/dto/pagination-query.dto';
 import { paginate } from '../../common/interfaces/paginated-result.interface';
 import { OptionList } from '../settings/entities/setting-option.entity';
@@ -17,13 +25,70 @@ const EFFECTIVE_PRICE = 'COALESCE(v.salePrice, v.price)';
 /** Filter dimensions that get per-option counts in `facets()`. */
 type FacetKey = 'make' | 'fuelTypes' | 'transmissions' | 'bodyTypes';
 
+/** Changing any of these renames the vehicle's URL. */
+const SLUG_FIELDS = ['year', 'make', 'model', 'variant'] as const;
+
 @Injectable()
-export class VehiclesService {
+export class VehiclesService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(VehiclesService.name);
+
   constructor(
     @InjectRepository(Vehicle) private readonly vehicles: Repository<Vehicle>,
     private readonly settings: SettingsService,
     private readonly storage: StorageService,
   ) {}
+
+  /** Give every vehicle created before slugs existed its SEO URL. */
+  async onApplicationBootstrap() {
+    const missing = await this.vehicles.find({ where: { slug: IsNull() } });
+    for (const v of missing) {
+      v.slug = await this.uniqueSlug(v);
+      await this.vehicles.save(v);
+    }
+    if (missing.length) this.logger.log(`Generated SEO slugs for ${missing.length} vehicles`);
+  }
+
+  // ── SEO URLs ──────────────────────────────────────
+
+  /**
+   * GET /vehicles/slug/:slug. Exact match first; otherwise resolve by the id code
+   * at the end of the slug (the vehicle was renamed) — the caller then redirects
+   * to the returned `slug`, which is the canonical URL.
+   */
+  async findBySlug(slug: string) {
+    const exact = await this.vehicles.findOne({ where: { slug } });
+    if (exact) return exact;
+
+    const code = slugIdCode(slug);
+    if (code) {
+      const matches = await this.vehicles.find({ where: { id: Like(`${code}%`) }, take: 2 });
+      if (matches.length === 1) return matches[0];
+    }
+    throw new NotFoundException('Vehicle not found');
+  }
+
+  /** Lightweight list for sitemap.xml: every vehicle's slug and last-modified time. */
+  async sitemapEntries() {
+    const rows = await this.vehicles.find({
+      select: { slug: true, updatedAt: true, vehicleStatus: true, image: true },
+      where: { slug: Not(IsNull()) },
+      order: { updatedAt: 'DESC' },
+    });
+    return rows.map(({ slug, updatedAt, vehicleStatus, image }) => ({
+      slug,
+      updatedAt,
+      vehicleStatus,
+      image: image || null,
+    }));
+  }
+
+  /** Slug for this vehicle; falls back to the full id if the short form is somehow taken. */
+  private async uniqueSlug(v: Vehicle): Promise<string> {
+    const slug = vehicleSlug(v);
+    const clash = await this.vehicles.findOne({ where: { slug, id: Not(v.id) } });
+    if (!clash) return slug;
+    return `${slug.slice(0, -8)}${v.id.replace(/-/g, '')}`;
+  }
 
   async findAll(query: QueryVehiclesDto) {
     const qb = this.vehicles.createQueryBuilder('v');
@@ -76,7 +141,9 @@ export class VehiclesService {
 
   async create(dto: CreateVehicleDto) {
     await this.validateOptions(dto);
-    const vehicle = this.vehicles.create(this.normalise(dto));
+    // Assign the id up front so the slug (which ends with an id prefix) can be built before insert.
+    const vehicle = this.vehicles.create({ ...this.normalise(dto), id: randomUUID() });
+    vehicle.slug = await this.uniqueSlug(vehicle);
     return this.vehicles.save(vehicle);
   }
 
@@ -84,7 +151,11 @@ export class VehiclesService {
     const vehicle = await this.findOne(id);
     await this.validateOptions(dto);
     const before = this.fileUrls(vehicle);
+    const titleChanged = SLUG_FIELDS.some(
+      (f) => dto[f] !== undefined && dto[f] !== vehicle[f],
+    );
     Object.assign(vehicle, this.normalise(dto));
+    if (titleChanged || !vehicle.slug) vehicle.slug = await this.uniqueSlug(vehicle);
     const saved = await this.vehicles.save(vehicle);
 
     // Delete uploaded files the vehicle no longer uses (removed images, replaced brochure…).

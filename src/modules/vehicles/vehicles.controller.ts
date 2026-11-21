@@ -35,6 +35,21 @@ export class VehiclesController {
     return this.vehiclesService.facets(query);
   }
 
+  /** sitemap.xml data: `[{ slug, updatedAt, vehicleStatus }]` for every vehicle. */
+  @Get('sitemap')
+  sitemap() {
+    return this.vehiclesService.sitemapEntries();
+  }
+
+  /**
+   * Vehicle by its SEO slug. A renamed vehicle's old slug still resolves (by the
+   * id code at its end); compare the returned `slug` to redirect to the canonical URL.
+   */
+  @Get('slug/:slug')
+  findBySlug(@Param('slug') slug: string) {
+    return this.vehiclesService.findBySlug(slug.slice(0, 200));
+  }
+
   @Get('featured')
   findFeatured(@Query('limit', new DefaultValuePipe(6), ParseIntPipe) limit: number) {
     return this.vehiclesService.findFeatured(Math.min(limit, 24));

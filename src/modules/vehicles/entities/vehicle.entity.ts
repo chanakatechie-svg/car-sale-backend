@@ -14,6 +14,15 @@ export enum VehicleStatus {
 @Entity('vehicles')
 @Index(['make', 'model'])
 export class Vehicle extends BaseEntity {
+  /**
+   * SEO URL segment, e.g. "2023-mercedes-benz-e-class-e300-amg-line-8bdd2864".
+   * Regenerated when year/make/model/variant change; the trailing 8 characters
+   * are the id prefix, so old slugs still resolve (and redirect) after a rename.
+   */
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  slug: string | null;
+
   // ── Core ──────────────────────────────────────────
   @Column({ length: 60 })
   make: string;
