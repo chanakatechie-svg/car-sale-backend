@@ -55,7 +55,7 @@ export class Enquiry extends BaseEntity {
   @JoinColumn({ name: 'vehicleId' })
   vehicle: Vehicle | null;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'varchar', length: 36, nullable: true })
   vehicleId: string | null;
 
   @Column({ type: 'date', nullable: true })

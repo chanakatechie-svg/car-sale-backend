@@ -1,16 +1,20 @@
+# Optional: a containerised MySQL if you don't have one installed locally.
+# Uses host port 53306 so it doesn't clash with a local MySQL on 3306
+# (set DB_PORT=53306 in .env if you use this).
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: car-sale-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: car-sale-mysql
     restart: unless-stopped
     environment:
-      POSTGRES_USER: carsale
-      POSTGRES_PASSWORD: carsale
-      POSTGRES_DB: carsale
+      MYSQL_ROOT_PASSWORD: carsale
+      MYSQL_USER: carsale
+      MYSQL_PASSWORD: carsale
+      MYSQL_DATABASE: carsale
     ports:
-      - '56432:5432'
+      - '53306:3306'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mysqldata:/var/lib/mysql
 
 volumes:
-  pgdata:
+  mysqldata:

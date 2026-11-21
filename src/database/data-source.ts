@@ -8,9 +8,9 @@ import { DataSource } from 'typeorm';
  * The Nest app builds its own connection in app.module.ts from the same env vars.
  */
 export const AppDataSource = new DataSource({
-  type: 'postgres',
+  type: 'mysql',
   host: process.env.DB_HOST ?? 'localhost',
-  port: parseInt(process.env.DB_PORT ?? '5432', 10),
+  port: parseInt(process.env.DB_PORT ?? '3306', 10),
   username: process.env.DB_USERNAME ?? 'carsale',
   password: process.env.DB_PASSWORD ?? 'carsale',
   database: process.env.DB_NAME ?? 'carsale',

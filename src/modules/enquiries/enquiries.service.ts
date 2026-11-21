@@ -51,7 +51,7 @@ export class EnquiriesService {
       qb.andWhere(
         new Brackets((w) =>
           w
-            .where(`LOWER(e.firstName || ' ' || e.lastName) LIKE :term`, { term })
+            .where(`LOWER(CONCAT(e.firstName, ' ', e.lastName)) LIKE :term`, { term })
             .orWhere('LOWER(e.email) LIKE :term', { term })
             .orWhere('e.phone LIKE :term', { term }),
         ),
@@ -83,10 +83,13 @@ export class EnquiriesService {
     const rows = await this.enquiries
       .createQueryBuilder('e')
       .select('e.type', 'type')
-      .addSelect('COUNT(*)::int', 'total')
-      .addSelect(`COUNT(*) FILTER (WHERE e.status = '${EnquiryStatus.New}')::int`, 'new')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect(`SUM(CASE WHEN e.status = '${EnquiryStatus.New}' THEN 1 ELSE 0 END)`, 'new')
       .groupBy('e.type')
-      .getRawMany<{ type: EnquiryType; total: number; new: number }>();
+      .getRawMany<{ type: EnquiryType; total: string; new: string }>()
+      .then((raw) =>
+        raw.map((r) => ({ type: r.type, total: Number(r.total), new: Number(r.new) })),
+      );
 
     return {
       total: rows.reduce((s, r) => s + r.total, 0),

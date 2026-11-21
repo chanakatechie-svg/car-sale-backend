@@ -9,7 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
 
-const PG_UNIQUE_VIOLATION = '23505';
+const MYSQL_DUP_ENTRY = 'ER_DUP_ENTRY';
 
 /** Normalises every error into `{ statusCode, message, error, path, timestamp }`. */
 @Catch()
@@ -38,7 +38,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     } else if (
       exception instanceof QueryFailedError &&
-      (exception.driverError as { code?: string })?.code === PG_UNIQUE_VIOLATION
+      (exception.driverError as { code?: string })?.code === MYSQL_DUP_ENTRY
     ) {
       status = HttpStatus.CONFLICT;
       message = 'A record with these details already exists';

@@ -60,11 +60,11 @@ export class Vehicle extends BaseEntity {
 
   // ── Media ─────────────────────────────────────────
   /** Primary image — kept in sync with images[0]. */
-  @Column({ type: 'text', default: '' })
+  @Column({ type: 'varchar', length: 500, default: '' })
   image: string;
 
-  @Column({ type: 'text', array: true, default: '{}' })
-  images: string[];
+  @Column({ type: 'simple-json' })
+  images: string[] = [];
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   brochureUrl: string | null;
@@ -85,7 +85,7 @@ export class Vehicle extends BaseEntity {
   @Column({ type: 'varchar', length: 40, nullable: true })
   stockNumber: string | null;
 
-  @Index({ unique: true, where: '"vinNumber" IS NOT NULL' })
+  @Index({ unique: true })
   @Column({ type: 'varchar', length: 17, nullable: true })
   vinNumber: string | null;
 
@@ -146,11 +146,11 @@ export class Vehicle extends BaseEntity {
   serviceHistory: string | null;
 
   // ── Content ───────────────────────────────────────
-  @Column({ type: 'text', array: true, default: '{}' })
-  features: string[];
+  @Column({ type: 'simple-json' })
+  features: string[] = [];
 
-  @Column({ type: 'text', array: true, default: '{}' })
-  reviewStamps: string[];
+  @Column({ type: 'simple-json' })
+  reviewStamps: string[] = [];
 
   @Column({ type: 'text', nullable: true })
   description: string | null;

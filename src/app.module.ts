@@ -23,7 +23,7 @@ import { VehiclesModule } from './modules/vehicles/vehicles.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
+        type: 'mysql',
         host: config.get('database.host'),
         port: config.get('database.port'),
         username: config.get('database.username'),

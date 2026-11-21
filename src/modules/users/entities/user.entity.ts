@@ -21,6 +21,6 @@ export class User extends BaseEntity {
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.Active })
   status: UserStatus;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   lastLoginAt: Date | null;
 }

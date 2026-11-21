@@ -94,27 +94,25 @@ export class VehiclesService {
   async stats() {
     const totals = await this.vehicles
       .createQueryBuilder('v')
-      .select('COUNT(*)::int', 'total')
-      .addSelect('COALESCE(SUM(v.price), 0)::bigint', 'stockValue')
-      .addSelect('COALESCE(AVG(v.price), 0)::int', 'avgPrice')
-      .addSelect('COUNT(*) FILTER (WHERE v.featured)::int', 'featured')
-      .addSelect(`COUNT(*) FILTER (WHERE v."vehicleStatus" = 'sold')::int`, 'sold')
-      .getRawOne<{
-        total: number;
-        stockValue: string;
-        avgPrice: number;
-        featured: number;
-        sold: number;
-      }>();
+      .select('COUNT(*)', 'total')
+      .addSelect('COALESCE(SUM(v.price), 0)', 'stockValue')
+      .addSelect('ROUND(COALESCE(AVG(v.price), 0))', 'avgPrice')
+      .addSelect('COALESCE(SUM(CASE WHEN v.featured = 1 THEN 1 ELSE 0 END), 0)', 'featured')
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN v.vehicleStatus = '${VehicleStatus.Sold}' THEN 1 ELSE 0 END), 0)`,
+        'sold',
+      )
+      .getRawOne<Record<'total' | 'stockValue' | 'avgPrice' | 'featured' | 'sold', string>>();
 
     const groupBy = (column: 'make' | 'fuelType' | 'bodyType') =>
       this.vehicles
         .createQueryBuilder('v')
         .select(`v.${column}`, 'name')
-        .addSelect('COUNT(*)::int', 'count')
+        .addSelect('COUNT(*)', 'count')
         .groupBy(`v.${column}`)
         .orderBy('count', 'DESC')
-        .getRawMany<{ name: string; count: number }>();
+        .getRawMany<{ name: string; count: string }>()
+        .then((rows) => rows.map((r) => ({ name: r.name, count: Number(r.count) })));
 
     const [byMake, byFuelType, byBodyType] = await Promise.all([
       groupBy('make'),
@@ -123,11 +121,11 @@ export class VehiclesService {
     ]);
 
     return {
-      total: totals?.total ?? 0,
+      total: Number(totals?.total ?? 0),
       stockValue: Number(totals?.stockValue ?? 0),
-      avgPrice: totals?.avgPrice ?? 0,
-      featured: totals?.featured ?? 0,
-      sold: totals?.sold ?? 0,
+      avgPrice: Number(totals?.avgPrice ?? 0),
+      featured: Number(totals?.featured ?? 0),
+      sold: Number(totals?.sold ?? 0),
       byMake,
       byFuelType,
       byBodyType,

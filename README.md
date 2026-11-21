@@ -2,7 +2,7 @@
 
 The REST API behind the **car-sale** Next.js site (`../car-sale`). It covers the public site (stock listing, vehicle detail, enquiry forms) and the admin panel (dashboard, vehicles, users, settings, enquiries).
 
-**Stack:** NestJS 11 · TypeORM · PostgreSQL · JWT (passport-jwt) · class-validator · Swagger
+**Stack:** NestJS 11 · TypeORM · MySQL 8 · JWT (passport-jwt) · class-validator · Swagger
 
 ---
 
@@ -10,7 +10,7 @@ The REST API behind the **car-sale** Next.js site (`../car-sale`). It covers the
 
 ```bash
 cp .env.example .env          # then set JWT_SECRET
-docker compose up -d          # Postgres on localhost:56432
+# create the database in your local MySQL: CREATE DATABASE carsale;
 npm install
 npm run seed                  # settings lists, admin user, sample stock
 npm run start:dev             # http://localhost:4000/api/v1
@@ -20,7 +20,7 @@ npm run start:dev             # http://localhost:4000/api/v1
 - Health check: http://localhost:4000/api/v1/health
 - Seed admin: `admin@apexselect.co.uk` / `admin123`. Change it with `SEED_ADMIN_*` in `.env`.
 
-> Postgres uses host port **56432** so it doesn't clash with the other local databases on 5432–5434.
+> Uses a local MySQL 8 on port 3306 (set DB_* in `.env`). No local MySQL? `docker compose up -d` starts one on port 53306.
 
 ---
 
